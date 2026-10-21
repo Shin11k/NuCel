@@ -122,7 +122,7 @@ function Phone({d,c,close}:{d:Device;c:Connection;close:()=>void}){
   const frameRef=useRef<HTMLIFrameElement>(null);
 
   useEffect(()=>{
-    if(localBridge||process.env.NEXT_PUBLIC_NUCEL_BRIDGE_V2_URL)return;
+    if(workerHost||localBridge||process.env.NEXT_PUBLIC_NUCEL_BRIDGE_V2_URL)return;
     let alive=true;
     fetch('/api/nucel',{cache:'no-store'})
       .then(r=>r.json())
@@ -132,7 +132,7 @@ function Phone({d,c,close}:{d:Device;c:Connection;close:()=>void}){
       })
       .catch(()=>{});
     return()=>{alive=false};
-  },[c.id,localBridge]);
+  },[c.id,localBridge,workerHost]);
 
   useEffect(()=>{
     const onMessage=(event:MessageEvent)=>{
