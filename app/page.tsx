@@ -111,7 +111,12 @@ function Phone({d,c,close}:{d:Device;c:Connection;close:()=>void}){
   const localBridge=typeof window!=='undefined'&&(window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1')
     ?`http://${window.location.hostname}:8000`
     :'';
-  const initial=(process.env.NEXT_PUBLIC_NUCEL_BRIDGE_V2_URL||localBridge||c.url).replace(/\/$/,'');
+  const workerHost=typeof window!=='undefined'&&
+    (window.location.hostname==='nucel-vpc-teste.nuvixgestao.workers.dev'||
+     window.location.hostname==='nucel.nuvixgestao.workers.dev')
+    ?window.location.origin+'/engine'
+    :'';
+  const initial=(workerHost||process.env.NEXT_PUBLIC_NUCEL_BRIDGE_V2_URL||localBridge||c.url).replace(/\/$/,'');
   const [engine,setEngine]=useState(initial);
   const [playerHeight,setPlayerHeight]=useState(590);
   const frameRef=useRef<HTMLIFrameElement>(null);
