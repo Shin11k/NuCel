@@ -81,6 +81,45 @@ try {
     exit 0
 }
 catch {
-    Write-Host ('[ERRO] Falha ao sincronizar URL do tunnel: ' + $_.Exception.Message) -ForegroundColor Red
+    $syncError = $_
+    Write-Host ('[ERRO] Falha ao sincronizar URL do tunnel: ' + $syncError.Exception.Message) -ForegroundColor Red
+
+    # Mostra o codigo HTTP e a resposta da API sem expor a chave local.
+    $response = $syncError.Exception.Response
+    if ($null -ne $response) {
+        try {
+            Write-Host ('[HTTP] ' + [int]$response.StatusCode + ' ' + $response.StatusDescription) -ForegroundColor Yellow
+        } catch {}
+
+        $detail = $null
+        try {
+            $stream = $response.GetResponseStream()
+            if ($null -ne $stream) {
+                $reader = New-Object System.IO.StreamReader($stream)
+                try {
+                    $detail = $reader.ReadToEnd()
+                } finally {
+                    $reader.Dispose()
+                }
+            }
+        } catch {
+            Write-Host ('[AVISO] Nao foi possivel ler a resposta HTTP: ' + $_.Exception.Message) -ForegroundColor Yellow
+        }
+
+        # Alguns erros do PowerShell ja trazem o corpo da resposta em ErrorDetails.
+        if ([string]::IsNullOrWhiteSpace($detail) -and $syncError.ErrorDetails) {
+            $detail = $syncError.ErrorDetails.Message
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($detail)) {
+            Write-Host ('[DETALHES DA API] ' + $detail) -ForegroundColor Yellow
+        } else {
+            Write-Host '[DETALHES DA API] O servidor nao enviou detalhes adicionais.' -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host '[DETALHES] Nao houve resposta HTTP. Verifique DNS, internet e acesso ao Worker.' -ForegroundColor Yellow
+    }
+
+    Write-Host '[INFO] Nenhuma chave ou assinatura local foi exibida no diagnostico.' -ForegroundColor DarkGray
     exit 4
 }
