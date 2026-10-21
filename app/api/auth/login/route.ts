@@ -1,4 +1,6 @@
-import { signInWithPassword } from '@/lib/supabase/auth';
+import { signInWithPassword } from '@/lib/local-auth';
+
+export const runtime = 'nodejs';
 
 function sameOrigin(req: Request) {
   const origin = req.headers.get('origin');
