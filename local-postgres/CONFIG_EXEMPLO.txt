@@ -1,0 +1,10 @@
+# Copie estas linhas para NuCel/.env.local APENAS no PC servidor.
+# Nao envie esse arquivo em mensagens, GitHub ou prints.
+# Defina senha longa para o usuario nucel_app criado no PostgreSQL.
+NUCEL_PG_HOST=127.0.0.1
+NUCEL_PG_PORT=5432
+NUCEL_PG_DB=nucel_db
+NUCEL_PG_USER=nucel_app
+NUCEL_PG_PASSWORD=COLE_AQUI_SENHA_LOCAL
+NUCEL_OWNER_EMAIL=SEU_EMAIL_DE_ADMINISTRADOR
+NEXT_PUBLIC_NUCEL_BRIDGE_V2_URL=
