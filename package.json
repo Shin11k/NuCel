@@ -9,12 +9,10 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "lint": "eslint . --ignore-pattern .next",
     "local:owner": "node --env-file=.env.local local-postgres/bootstrap-owner.mjs",
-    "local:doctor": "node --env-file=.env.local local-postgres/check.mjs"
+    "local:doctor": "node --env-file=.env.local local-postgres/check.mjs",
+    "start:local": "next start -H 127.0.0.1 -p 3001"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
@@ -43,7 +41,6 @@
     "pg": "8.16.3"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "1.20.6",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
@@ -52,7 +49,6 @@
     "eslint-config-next": "16.3.4",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
-    "wrangler": "4.135.0",
     "@types/pg": "8.15.6"
   }
 }
