@@ -1,7 +1,9 @@
 import { identity, sign, selectAll, type Bridge, type Device, type Grant, type Member } from '@/lib/server';
-import { adminRest, query } from '@/lib/supabase/rest';
+import { adminRest, query } from '@/lib/local-rest';
+import { makeInvite } from '@/lib/local-auth';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 function result(data: unknown, status = 200) {
   return Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -143,10 +145,12 @@ export async function POST(req: Request) {
     } else if (body.action === 'member') {
       const email = str('email', 254).toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('VALID:E-mail inválido.');
+      const invite = makeInvite();
       await adminRest('nucel_members', {
         method: 'POST',
-        body: JSON.stringify({ id: crypto.randomUUID(), email, name: str('name'), role: 'collaborator' }),
+        body: JSON.stringify({ id: crypto.randomUUID(), email, name: str('name'), role: 'collaborator', invite_hash: invite.hash }),
       });
+      return result({ ok: true, invite: invite.token, email });
     } else if (body.action === 'grants') {
       const id = str('memberId');
       const members = await adminRest<Member[]>(query('nucel_members', { select: 'id,role', id: `eq.${id}`, limit: '1' }));
