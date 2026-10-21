@@ -109,7 +109,7 @@ function Devices({data,status,active,setActive,admin,add}:{data:Data;status:Reco
 }
 function Phone({d,c,close}:{d:Device;c:Connection;close:()=>void}){
   const localBridge=typeof window!=='undefined'&&(window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1')
-    ?'http://localhost:8000'
+    ?`http://${window.location.hostname}:8000`
     :'';
   const initial=(process.env.NEXT_PUBLIC_NUCEL_BRIDGE_V2_URL||localBridge||c.url).replace(/\/$/,'');
   const [engine,setEngine]=useState(initial);
