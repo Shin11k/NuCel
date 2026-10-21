@@ -1,7 +1,8 @@
-import { adminRest, query } from '@/lib/supabase/rest';
+import { sql } from '@/lib/local-db';
 import type { Bridge } from '@/lib/server';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 function json(data: unknown, status = 200) {
   return Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -60,11 +61,10 @@ export async function POST(req: Request) {
       return json({ error: 'URL de tunnel inválida.' }, 400);
     }
 
-    const bridges = await adminRest<Bridge[]>(query('nucel_bridges', {
-      select: 'id,name,url,secret',
-      name: `eq.${bridgeName}`,
-      limit: '1',
-    }));
+    const bridges = await sql<Bridge>(
+      'SELECT id,name,url,secret FROM nucel_bridges WHERE name=$1 LIMIT 1',
+      [bridgeName],
+    );
 
     const bridge = bridges[0];
     if (!bridge?.secret) return json({ error: 'Conexão não encontrada.' }, 404);
@@ -75,10 +75,7 @@ export async function POST(req: Request) {
       return json({ error: 'Assinatura inválida.' }, 401);
     }
 
-    await adminRest(query('nucel_bridges', { id: `eq.${bridge.id}` }), {
-      method: 'PATCH',
-      body: JSON.stringify({ url: url.origin }),
-    });
+    await sql('UPDATE nucel_bridges SET url=$1 WHERE id=$2', [url.origin, bridge.id]);
 
     return json({ ok: true, url: url.origin });
   } catch (error) {
