@@ -22,6 +22,7 @@ try {
     $origins = @(
         'http://127.0.0.1:3001',
         'http://localhost:3001'
+        'https://nucel-vpc-teste.nuvixgestao.workers.dev'
     )
     $allowed = @($config.frameAncestors)
     foreach ($origin in $origins) {
