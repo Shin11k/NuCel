@@ -1,10 +1,6 @@
 import type { NextConfig } from "next";
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+// NuCel Local: Next.js/Node.js no PC servidor, sem runtime OpenNext.
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
-
-initOpenNextCloudflareForDev();
