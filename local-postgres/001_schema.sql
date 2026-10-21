@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS nucel_members (
     auth_user_id uuid UNIQUE,
     role text NOT NULL DEFAULT 'collaborator' CHECK (role IN ('admin', 'collaborator')),
     password_hash text,
+    invite_hash text,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT nucel_members_email_lower CHECK (email = lower(email))
 );
