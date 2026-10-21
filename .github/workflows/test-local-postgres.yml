@@ -1,0 +1,50 @@
+name: Test NuCel PostgreSQL Local
+
+on:
+  push:
+    branches:
+      - nucel-postgres-local
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: nucel_app
+          POSTGRES_PASSWORD: ci_only_test_password
+          POSTGRES_DB: nucel_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nucel_app -d nucel_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      NUCEL_PG_HOST: 127.0.0.1
+      NUCEL_PG_PORT: "5432"
+      NUCEL_PG_DB: nucel_db
+      NUCEL_PG_USER: nucel_app
+      NUCEL_PG_PASSWORD: ci_only_test_password
+      NUCEL_OWNER_EMAIL: admin@example.test
+      PGPASSWORD: ci_only_test_password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+      - name: Preparar banco PostgreSQL
+        run: psql -h 127.0.0.1 -U nucel_app -d nucel_db -v ON_ERROR_STOP=1 -f local-postgres/001_schema.sql
+      - name: Criar .env.local de TESTE
+        run: |
+          printf 'NUCEL_PG_HOST=127.0.0.1\nNUCEL_PG_PORT=5432\nNUCEL_PG_DB=nucel_db\nNUCEL_PG_USER=nucel_app\nNUCEL_PG_PASSWORD=ci_only_test_password\nNUCEL_OWNER_EMAIL=admin@example.test\n' > .env.local
+      - name: Validar esquema
+        run: npm run local:doctor
+      - name: Compilar painel Node
+        run: npm run build
