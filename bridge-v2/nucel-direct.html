@@ -123,9 +123,47 @@ body{display:flex;align-items:stretch;justify-content:center}
   let generation=0;
   let lastReportedSize='';
 
+  // Apenas os paineis NuCel autorizados podem pedir ou receber um clipboard.
+  const allowedParents=new Set([
+    'http://127.0.0.1:3001',
+    'http://localhost:3001',
+    'https://nucel-vpc-teste.nuvixgestao.workers.dev',
+    'https://nucel.nuvixgestao.workers.dev'
+  ]);
   const parentOrigin=(()=>{
-    try{return document.referrer?new URL(document.referrer).origin:'*'}catch{return'*'}
+    try {
+      const origin=document.referrer?new URL(document.referrer).origin:'';
+      return allowedParents.has(origin)?origin:'';
+    }catch{return''}
   })();
+  let captureRequestId='';
+
+  function reportToPanel(payload){
+    if(!parentOrigin||window.parent===window)return;
+    try{window.parent.postMessage(Object.assign({device:device},payload),parentOrigin)}catch{}
+  }
+
+  window.addEventListener('message',function(event){
+    if(!parentOrigin||event.source!==window.parent||event.origin!==parentOrigin)return;
+    const msg=event.data;
+    if(!msg||msg.device!==device||typeof msg.requestId!=='string'||
+      !/^[a-zA-Z0-9_-]{1,80}$/.test(msg.requestId))return;
+
+    if(msg.type==='nucel:clipboard-capture'){
+      captureRequestId=msg.requestId;
+      if(!handle||!handle.copySelection||!handle.copySelection()){
+        captureRequestId='';
+        reportToPanel({type:'nucel:clipboard-ack',requestId:msg.requestId,ok:false,error:'Celular sem conexao ou versao antiga do ENGINE'});
+      }
+    }else if(msg.type==='nucel:clipboard-set'){
+      const value=typeof msg.text==='string'?msg.text:'';
+      const size=new TextEncoder().encode(value).length;
+      const ok=size>0&&size<=16384&&handle&&handle.sendClipboard&&
+        handle.sendClipboard(value,msg.paste===true);
+      reportToPanel({type:'nucel:clipboard-ack',requestId:msg.requestId,ok:!!ok,
+        error:ok?'':'Confira se o celular esta conectado e atualizado'});
+    }
+  });
 
   function reportStreamSize(){
     const canvas=stream.querySelector('.video-layer');
@@ -199,6 +237,14 @@ body{display:flex;align-items:stretch;justify-content:center}
         audio:false,
         keyboard:true,
         deviceKind:'phone',
+        onClipboard:function(text){
+          if(!captureRequestId)return;
+          const id=captureRequestId;
+          captureRequestId='';
+          if(typeof text==='string'&&new TextEncoder().encode(text).length<=16384){
+            reportToPanel({type:'nucel:clipboard-result',requestId:id,text:text});
+          }
+        },
         onConnect:function(){
           if(stopped||myGeneration!==generation)return;
           if(reconnectTimer){
