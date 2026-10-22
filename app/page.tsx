@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Check,Copy,Loader2,LogOut,Monitor,Play,Plus,Server,ShieldCheck,Smartphone,Users,Wifi,WifiOff,X} from 'lucide-react';
 import {toast,Toaster} from 'sonner';
+import TransferPanel, { type ClipboardCommand, type ClipboardReply } from './components/TransferPanel';
 
 type Device={id:string;name:string;model:string;serial:string;bridge_id:string};
 type Connection={id:string;name:string;url:string;token:string};
@@ -105,7 +106,7 @@ export default function Home(){
 
 function Devices({data,status,active,setActive,admin,add}:{data:Data;status:Record<string,string>;active:string[];setActive:React.Dispatch<React.SetStateAction<string[]>>;admin:boolean;add:()=>void}){
   const online=data.devices.filter(d=>status[d.id]==='device').length;
-  return <section><div className="metrics"><Metric icon={<Smartphone/>} n={data.devices.length} t="Aparelhos"/><Metric icon={<Wifi/>} n={online} t="Online"/><Metric icon={<WifiOff/>} n={data.devices.length-online} t="Sem conexão"/><Metric icon={<Monitor/>} n={active.length} t="Telas abertas"/></div><Head title={admin?'Todos os celulares':'Meus celulares'} text={admin?'Organize os aparelhos da operação.':'Aparelhos liberados para sua conta.'} action={admin?'Adicionar celular':undefined} click={add}/><div className="device-grid">{data.devices.map(d=><article className="device" key={d.id}><div className="device-top"><span className={'dot '+(status[d.id]==='device'?'on':'')}/><small>{status[d.id]==='device'?'Online':status[d.id]==='unauthorized'?'Autorizar no aparelho':'Sem conexão'}</small></div><Smartphone className="phone-icon"/><b>{d.name}</b><span>{d.model}</span><button disabled={status[d.id]!=='device'} onClick={()=>setActive(x=>x.includes(d.id)?x:[...x,d.id])}>{active.includes(d.id)?<><Check/>Aberto</>:<><Play/>Iniciar</>}</button></article>)}</div>{!data.devices.length&&<div className="empty">Nenhum celular cadastrado ainda.{admin&&<button onClick={add}>Conectar primeiro aparelho</button>}</div>}<div className="workspace"><div className="workspace-title"><Monitor/>Área de trabalho <small>{active.length} telas abertas</small></div>{active.length?<div className="screens">{active.map(id=>{const d=data.devices.find(x=>x.id===id),c=data.connections.find(x=>x.id===d?.bridge_id);return d&&c?<Phone key={id} d={d} c={c} close={()=>setActive(x=>x.filter(v=>v!==id))}/>:null})}</div>:<div className="workspace-empty"><Monitor size={42}/><b>Inicie um celular para controlar por aqui.</b><span>Abra vários e trabalhe com todos lado a lado.</span></div>}</div></section>
+  return <section><div className="metrics"><Metric icon={<Smartphone/>} n={data.devices.length} t="Aparelhos"/><Metric icon={<Wifi/>} n={online} t="Online"/><Metric icon={<WifiOff/>} n={data.devices.length-online} t="Sem conexão"/><Metric icon={<Monitor/>} n={active.length} t="Telas abertas"/></div><Head title={admin?'Todos os celulares':'Meus celulares'} text={admin?'Organize os aparelhos da operação.':'Aparelhos liberados para sua conta.'} action={admin?'Adicionar celular':undefined} click={add}/><div className="device-grid">{data.devices.map(d=><article className="device" key={d.id}><div className="device-top"><span className={'dot '+(status[d.id]==='device'?'on':'')}/><small>{status[d.id]==='device'?'Online':status[d.id]==='unauthorized'?'Autorizar no aparelho':'Sem conexão'}</small></div><Smartphone className="phone-icon"/><b>{d.name}</b><span>{d.model}</span><button disabled={status[d.id]!=='device'} onClick={()=>setActive(x=>x.includes(d.id)?x:[...x,d.id])}>{active.includes(d.id)?<><Check/>Aberto</>:<><Play/>Iniciar</>}</button></article>)}</div>{!data.devices.length&&<div className="empty">Nenhum celular cadastrado ainda.{admin&&<button onClick={add}>Conectar primeiro aparelho</button>}</div>}<TransferPanel devices={data.devices} openIds={active} /><div className="workspace"><div className="workspace-title"><Monitor/>Área de trabalho <small>{active.length} telas abertas</small></div>{active.length?<div className="screens">{active.map(id=>{const d=data.devices.find(x=>x.id===id),c=data.connections.find(x=>x.id===d?.bridge_id);return d&&c?<Phone key={id} d={d} c={c} close={()=>setActive(x=>x.filter(v=>v!==id))}/>:null})}</div>:<div className="workspace-empty"><Monitor size={42}/><b>Inicie um celular para controlar por aqui.</b><span>Abra vários e trabalhe com todos lado a lado.</span></div>}</div></section>
 }
 function Phone({d,c,close}:{d:Device;c:Connection;close:()=>void}){
   const localBridge=typeof window!=='undefined'&&(window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1')
@@ -120,6 +121,35 @@ function Phone({d,c,close}:{d:Device;c:Connection;close:()=>void}){
   const [engine,setEngine]=useState(initial);
   const [playerHeight,setPlayerHeight]=useState(590);
   const frameRef=useRef<HTMLIFrameElement>(null);
+  useEffect(()=>{
+    // A pagina do celular tem sua propria origem; somente o iframe deste
+    // aparelho pode devolver uma confirmacao de leitura/colagem.
+    const fromIframe=(event:MessageEvent)=>{
+      if(event.source!==frameRef.current?.contentWindow)return;
+      try{if(event.origin!==new URL(frameRef.current.src).origin)return}catch{return}
+      const payload=event.data as Partial<ClipboardReply>|null;
+      if(!payload || payload.device!==d.serial ||
+        (payload.type!=='nucel:clipboard-ack'&&payload.type!=='nucel:clipboard-result'))return;
+      window.dispatchEvent(new CustomEvent<ClipboardReply>('nucel:clipboard:reply',{
+        detail:{...payload,id:d.id} as ClipboardReply
+      }));
+    };
+    const toIframe=(event:Event)=>{
+      const detail=(event as CustomEvent<ClipboardCommand>).detail;
+      if(!detail || detail.id!==d.id || detail.device!==d.serial)return;
+      const iframe=frameRef.current;
+      if(!iframe?.contentWindow)return;
+      try{
+        iframe.contentWindow.postMessage(detail,new URL(iframe.src).origin);
+      }catch{}
+    };
+    window.addEventListener('message',fromIframe);
+    window.addEventListener('nucel:clipboard:command',toIframe);
+    return()=>{
+      window.removeEventListener('message',fromIframe);
+      window.removeEventListener('nucel:clipboard:command',toIframe);
+    };
+  },[d.id,d.serial]);
 
   useEffect(()=>{
     if(workerHost||localBridge||process.env.NEXT_PUBLIC_NUCEL_BRIDGE_V2_URL)return;
@@ -168,7 +198,7 @@ function Phone({d,c,close}:{d:Device;c:Connection;close:()=>void}){
         src={src}
         title={'Controle de '+d.name}
         allow="clipboard-read; clipboard-write; fullscreen"
-        referrerPolicy="no-referrer"
+        referrerPolicy="origin"
       />
     </div>
     <footer>
