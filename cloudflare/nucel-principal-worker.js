@@ -70,7 +70,13 @@ export default {
       headers.delete(key);
     }
     headers.set('x-forwarded-host', backend.host);
-    headers.set('x-forwarded-proto', 'http');
+    // O navegador chegou por HTTPS. O ENGINE depende dessa informacao para
+    // emitir ws_scrcpy_token com Secure/SameSite=None/Partitioned no iframe.
+    headers.set('x-forwarded-proto', enginePath ? 'https' : 'http');
+    // O ENGINE compara Origin com Host na abertura do WebSocket.
+    // Ja validamos a origem publica exata acima; dentro da VPC o Host eh
+    // 127.0.0.1:8000, portanto a Origem deve ser a do destino privado.
+    if (enginePath && origin) headers.set('origin', ENGINE);
 
     // Preserve a origem HTTPS real do navegador. O Next local utiliza
     // uma allowlist estrita com os hostnames oficiais do NuCel.
