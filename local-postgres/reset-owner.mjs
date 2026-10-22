@@ -8,7 +8,7 @@ const scrypt = promisify(crypto.scrypt);
 const owner = process.env.NUCEL_OWNER_EMAIL?.trim().toLowerCase();
 const host = process.env.NUCEL_PG_HOST || '127.0.0.1';
 
-if (!owner || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(owner)) {
+if (!owner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(owner)) {
   console.error('[ERRO] NUCEL_OWNER_EMAIL invalido em .env.local');
   process.exit(1);
 }
