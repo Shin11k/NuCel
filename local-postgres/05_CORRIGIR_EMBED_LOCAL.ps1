@@ -21,8 +21,9 @@ try {
 
     $origins = @(
         'http://127.0.0.1:3001',
-        'http://localhost:3001'
-        'https://nucel-vpc-teste.nuvixgestao.workers.dev'
+        'http://localhost:3001',
+        'https://nucel-vpc-teste.nuvixgestao.workers.dev',
+        'https://nucel.nuvixgestao.workers.dev'
     )
     $allowed = @($config.frameAncestors)
     foreach ($origin in $origins) {
@@ -32,6 +33,19 @@ try {
     }
 
     $config.frameAncestors = $allowed
+    if ($null -eq $config.allowedHosts) {
+        throw 'A configuracao do ENGINE nao contem allowedHosts.'
+    }
+    $hosts = @($config.allowedHosts)
+    foreach ($hostToAllow in @(
+        'nucel-vpc-teste.nuvixgestao.workers.dev',
+        'nucel.nuvixgestao.workers.dev'
+    )) {
+        if ($hosts -notcontains $hostToAllow) {
+            $hosts += $hostToAllow
+        }
+    }
+    $config.allowedHosts = $hosts
     $backup = $path + '.backup-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
     Copy-Item -LiteralPath $path -Destination $backup -ErrorAction Stop
 
@@ -39,7 +53,7 @@ try {
     $json = $config | ConvertTo-Json -Depth 15
     [IO.File]::WriteAllText($path, $json + [Environment]::NewLine, $utf8)
 
-    Write-Host '[OK] O ENGINE pode ser incorporado no painel local da porta 3001.' -ForegroundColor Green
+    Write-Host '[OK] O ENGINE agora permite os dominios NuCel Cloudflare e o painel local.' -ForegroundColor Green
     Write-Host ('Configuracao: ' + $path) -ForegroundColor Gray
     Write-Host ('Backup: ' + $backup) -ForegroundColor DarkGray
     Write-Host 'REINICIE apenas o ENGINE (porta 8000) para a configuracao ser aplicada.' -ForegroundColor Yellow
