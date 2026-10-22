@@ -1,6 +1,7 @@
 import { identity, sign, selectAll, type Bridge, type Device, type Grant, type Member } from '@/lib/server';
 import { adminRest, query } from '@/lib/local-rest';
 import { makeInvite } from '@/lib/local-auth';
+import { sql } from '@/lib/local-db';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -93,6 +94,18 @@ export async function POST(req: Request) {
       if (typeof value !== 'string' || !value.trim() || value.length > max) throw new Error('VALID:Preencha todos os campos corretamente.');
       return value.trim();
     };
+
+    if (body.action === 'inviteMember') {
+      const memberId = str('id');
+      const invite = makeInvite();
+      const updated = await sql<{ id: string }>(
+        `UPDATE nucel_members SET invite_hash=$1 WHERE id=$2 AND role='collaborator'
+         AND password_hash IS NULL RETURNING id`,
+        [invite.hash, memberId],
+      );
+      if (!updated[0]) throw new Error('VALID:A colaboradora nao existe ou ja tem senha cadastrada.');
+      return result({ ok: true, invite: invite.token });
+    }
 
     if (body.action === 'bridge') {
       const url = new URL(str('url', 500));
