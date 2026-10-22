@@ -1,3 +1,4 @@
+import { sameOrigin } from '@/lib/request-origin';
 import { identity, sign, selectAll, type Bridge, type Device, type Grant, type Member } from '@/lib/server';
 import { adminRest, query } from '@/lib/local-rest';
 import { makeInvite } from '@/lib/local-auth';
@@ -10,29 +11,6 @@ function result(data: unknown, status = 200) {
   return Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
 }
 
-function sameOrigin(req: Request) {
-  const origin = req.headers.get('origin');
-  if (!origin) return false;
-
-  const requestOrigin = new URL(req.url).origin;
-  if (origin === requestOrigin) return true;
-
-  if (process.env.NODE_ENV !== 'production') {
-    try {
-      const a = new URL(origin);
-      const b = new URL(requestOrigin);
-      const local = (host: string) => host === 'localhost' || host === '127.0.0.1';
-      return local(a.hostname) &&
-        local(b.hostname) &&
-        a.protocol === b.protocol &&
-        a.port === b.port;
-    } catch {
-      return false;
-    }
-  }
-
-  return false;
-}
 
 function failure(error: unknown) {
   const message = error instanceof Error ? error.message : '';
