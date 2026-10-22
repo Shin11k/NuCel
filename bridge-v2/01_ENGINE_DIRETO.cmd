@@ -51,6 +51,10 @@ echo [2/3] Aplicando qualidade HD do NuCel...
 node "%ROOT%\patch-engine-quality.mjs"
 if errorlevel 1 goto :fail
 
+echo [2/3] Adicionando transferencia de texto entre celulares...
+node "%ROOT%\patch-engine-clipboard.mjs"
+if errorlevel 1 goto :fail
+
 echo [2/3] Compilando motor...
 call npm run build
 if errorlevel 1 goto :fail
