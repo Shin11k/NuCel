@@ -45,7 +45,10 @@ export default {
       if (!serials.size) return new Response('Nenhum celular liberado.', { status: 403 });
       const requestedSerial = incoming.searchParams.get('device') ||
         incoming.searchParams.get('udid') || incoming.searchParams.get('serial');
-      if (requestedSerial && !serials.has(requestedSerial)) {
+      if (ws && (!requestedSerial || !serials.has(requestedSerial))) {
+        return new Response('WebSocket exige um celular autorizado.', { status: 403 });
+      }
+      if (!ws && requestedSerial && !serials.has(requestedSerial)) {
         return new Response('Celular nao liberado para este usuario.', { status: 403 });
       }
     }
