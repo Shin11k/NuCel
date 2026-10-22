@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint . --ignore-pattern .next",
     "local:owner": "node --env-file=.env.local local-postgres/bootstrap-owner.mjs",
+    "local:reset-owner": "node --env-file=.env.local local-postgres/reset-owner.mjs",
     "local:doctor": "node --env-file=.env.local local-postgres/check.mjs",
     "start:local": "next start -H 127.0.0.1 -p 3001"
   },
