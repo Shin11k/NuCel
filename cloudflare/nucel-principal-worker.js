@@ -108,6 +108,23 @@ export default {
       // A resposta 101 WebSocket não pode ser reconstruída como HTTP comum.
       if (ws || response.status === 101) return response;
 
+      // Compatibilidade com versoes mais antigas do ENGINE que nao implementam
+      // a leitura de preferencias por dispositivo. Neste caso o scrcpy pode
+      // usar configuracoes padrao e prosseguir para a conexao de video.
+      // Nao fingir que uma escrita PATCH foi salva.
+      if (enginePath && incoming.pathname === '/api/settings/device' &&
+          request.method === 'GET' && response.status === 404) {
+        return new Response('{}', {
+          status: 200,
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'cache-control': 'private, no-store',
+            'x-nucel-compat': 'device-settings-defaults',
+            'x-nucel-backend': 'engine-8000'
+          }
+        });
+      }
+
       const responseHeaders = new Headers(response.headers);
       const location = responseHeaders.get('location');
       if (location) {
@@ -121,6 +138,7 @@ export default {
         }
       }
       responseHeaders.set('cache-control', 'private, no-store');
+      responseHeaders.set('x-nucel-backend', enginePath ? 'engine-8000' : 'panel-3001');
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
