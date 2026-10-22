@@ -92,6 +92,8 @@ import DeviceMessage from '../googDevice/DeviceMessage';`);
 
 for (const [key, file] of Object.entries(files)) {
   if (source[key] !== fs.readFileSync(file, 'utf8')) {
+    const backup = file + '.before-nucel-clipboard';
+    if (!fs.existsSync(backup)) fs.copyFileSync(file, backup);
     fs.writeFileSync(file, source[key], 'utf8');
     console.log('[NuCel Clipboard] atualizado:', path.basename(file));
   } else {
