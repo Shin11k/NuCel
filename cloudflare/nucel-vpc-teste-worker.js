@@ -26,6 +26,30 @@ export default {
       incoming.pathname.startsWith('/engine/') ||
       incoming.pathname.startsWith('/ws-scrcpy') ||
       ws;
+    // O Zero Trust valida o email. O NuCel valida a sessao e os celulares liberados.
+    // Sem uma sessao local valida, NUNCA envie pedidos ao ENGINE.
+    if (enginePath) {
+      const cookie = request.headers.get('cookie');
+      if (!cookie || !cookie.includes('nucel_session=')) {
+        return new Response('Entre no NuCel para controlar os celulares.', { status: 401 });
+      }
+      const verify = await env.VPC_SERVICE.fetch(new Request(PANEL + '/api/nucel', {
+        headers: { cookie, accept: 'application/json' },
+        redirect: 'manual'
+      }));
+      if (!verify.ok) {
+        return new Response('Sessao NuCel expirada ou sem permissao.', { status: 403 });
+      }
+      const access = await verify.json();
+      const serials = new Set((access.devices || []).map(device => device.serial));
+      if (!serials.size) return new Response('Nenhum celular liberado.', { status: 403 });
+      const requestedSerial = incoming.searchParams.get('device') ||
+        incoming.searchParams.get('udid') || incoming.searchParams.get('serial');
+      if (requestedSerial && !serials.has(requestedSerial)) {
+        return new Response('Celular nao liberado para este usuario.', { status: 403 });
+      }
+    }
+
     const binding = enginePath ? env.ENGINE_SERVICE : env.VPC_SERVICE;
     if (!binding) {
       return new Response(enginePath ? 'ENGINE_SERVICE nao vinculada.' : 'VPC_SERVICE nao vinculada.', { status: 503 });
