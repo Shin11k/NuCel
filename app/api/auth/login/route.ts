@@ -1,30 +1,8 @@
+import { sameOrigin } from '@/lib/request-origin';
 import { signInWithPassword } from '@/lib/local-auth';
 
 export const runtime = 'nodejs';
 
-function sameOrigin(req: Request) {
-  const origin = req.headers.get('origin');
-  if (!origin) return false;
-
-  const requestOrigin = new URL(req.url).origin;
-  if (origin === requestOrigin) return true;
-
-  if (process.env.NODE_ENV !== 'production') {
-    try {
-      const a = new URL(origin);
-      const b = new URL(requestOrigin);
-      const local = (host: string) => host === 'localhost' || host === '127.0.0.1';
-      return local(a.hostname) &&
-        local(b.hostname) &&
-        a.protocol === b.protocol &&
-        a.port === b.port;
-    } catch {
-      return false;
-    }
-  }
-
-  return false;
-}
 
 export async function POST(req: Request) {
   try {
