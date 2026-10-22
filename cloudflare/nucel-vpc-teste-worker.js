@@ -72,9 +72,9 @@ export default {
     headers.set('x-forwarded-host', backend.host);
     headers.set('x-forwarded-proto', 'http');
 
-    // O Next local valida o cabeçalho Origin na rota de login.
-    // O Worker já validou que o navegador veio da origem pública correta.
-    if (!enginePath && origin) headers.set('origin', PANEL);
+    // Preserve a origem HTTPS real do navegador. O Next local utiliza
+    // uma allowlist estrita com os hostnames oficiais do NuCel.
+    // Nao falsifique o Origin para localhost.
 
     const init = { method: request.method, headers, redirect: 'manual' };
     if (request.method !== 'GET' && request.method !== 'HEAD') {
