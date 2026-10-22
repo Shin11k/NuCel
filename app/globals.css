@@ -91,3 +91,27 @@
   .screen,.screen-direct{width:min(310px,100%);max-width:310px}
   .direct-display{max-height:72vh}
 }
+
+
+/* Transferencia de texto entre dispositivos: memoria temporaria no navegador. */
+.transfer-panel{margin-top:24px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:20px}
+.transfer-heading h2{font-size:18px;display:flex;align-items:center;gap:9px;margin:0;color:#362d40}
+.transfer-heading h2 svg{color:var(--p)}
+.transfer-heading p{margin:6px 0 18px;color:#918798;font-size:13px}
+.transfer-columns{display:grid;grid-template-columns:minmax(185px,1fr) minmax(240px,1.35fr) minmax(220px,1fr);gap:16px}
+.transfer-group{display:flex;flex-direction:column;align-items:stretch;gap:10px;min-width:0}
+.transfer-group>label,.transfer-label{font-weight:700;color:#4d4255;font-size:13px}
+.transfer-group select,.transfer-group textarea{width:100%;min-width:0;min-height:41px;resize:vertical;border:1px solid #ded8e4;border-radius:9px;padding:10px 11px;background:#fff;color:var(--text);font:inherit;font-size:13px}
+.transfer-group textarea{min-height:112px}
+.transfer-group>small{font-size:11px;line-height:1.5;color:#8d8296}
+.transfer-group button{width:100%;min-height:40px;height:auto;padding:10px}
+.transfer-group button:disabled{opacity:.55;cursor:not-allowed}
+.transfer-targets{max-height:170px;overflow:auto;display:grid;gap:7px;padding:2px}
+.transfer-targets label{display:flex;align-items:center;gap:9px;padding:8px 9px;border:1px solid #ede7f2;border-radius:8px;font-size:12px;cursor:pointer}
+.transfer-targets label.disabled{opacity:.55;cursor:not-allowed;background:#f8f7f9}
+.transfer-targets label span{display:flex;flex-direction:column;font-weight:700}
+.transfer-targets label small{font-size:10px;color:#91869a;font-weight:400;margin-top:3px}
+.transfer-targets input,.transfer-paste input{accent-color:var(--p);width:15px;height:15px;flex:none}
+.transfer-group .transfer-paste{font-size:11px;display:flex;align-items:flex-start;gap:7px;line-height:1.4;font-weight:500}
+@media(max-width:1050px){.transfer-columns{grid-template-columns:1fr 1fr}.transfer-columns .transfer-group:last-child{grid-column:1/-1}}
+@media(max-width:600px){.transfer-panel{padding:16px}.transfer-columns{grid-template-columns:1fr}.transfer-columns .transfer-group:last-child{grid-column:auto}}
