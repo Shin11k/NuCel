@@ -22,10 +22,27 @@ export default {
     }
 
     const ws = request.headers.get('upgrade')?.toLowerCase() === 'websocket';
+    // O player scrcpy usa URLs absolutas /api/... mesmo quando a pagina
+    // esta dentro de /engine. So estas rotas de leitura/configuracao do
+    // player devem ir para a porta 8000: /api/auth e /api/nucel
+    // continuam exclusivos do painel Next.js na porta 3001.
+    const engineApi = incoming.pathname === '/api/capabilities' ||
+      incoming.pathname === '/api/settings' ||
+      incoming.pathname === '/api/settings/device';
+    if (engineApi) {
+      const allowedMethod = incoming.pathname === '/api/settings/device'
+        ? ['GET', 'PATCH'].includes(request.method)
+        : request.method === 'GET';
+      if (!allowedMethod) return new Response('Metodo nao permitido.', { status: 405 });
+      if (incoming.pathname === '/api/settings/device' &&
+          !incoming.searchParams.get('udid')) {
+        return new Response('Identificador do celular obrigatorio.', { status: 400 });
+      }
+    }
     const enginePath = incoming.pathname === '/engine' ||
       incoming.pathname.startsWith('/engine/') ||
       incoming.pathname.startsWith('/ws-scrcpy') ||
-      ws;
+      engineApi || ws;
     // O Zero Trust valida o email. O NuCel valida a sessao e os celulares liberados.
     // Sem uma sessao local valida, NUNCA envie pedidos ao ENGINE.
     if (enginePath) {
