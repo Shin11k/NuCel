@@ -113,7 +113,7 @@ export default {
         ));
         const setCookie = bootstrap.headers.get('set-cookie') || '';
         // Cookie HttpOnly gerado pelo proprio ENGINE, nunca pelo navegador.
-        const match = /(?:^|,\\s*)ws_scrcpy_token=([a-f0-9]{64})(?:;|$)/i.exec(setCookie);
+        const match = /(?:^|, *)ws_scrcpy_token=([a-f0-9]{64})(?:;|$)/i.exec(setCookie);
         try { await bootstrap.body?.cancel(); } catch {}
         if (!bootstrap.ok || !match) {
           return new Response('ENGINE sem token de sessao. Verifique o motor local.', { status: 502 });
