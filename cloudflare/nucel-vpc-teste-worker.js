@@ -1,6 +1,6 @@
-// TESTE: Worker Cloudflare nucel-vpc-teste (com Cloudflare Access por hostname).
+// TESTE: Worker Cloudflare nucel-vpc-teste, autenticao obrigatoria por sessao do painel NuCel.
 // Requer VPC_SERVICE (painel HTTP 3001) e ENGINE_SERVICE (scrcpy HTTP 8000).
-// Nunca adicione uma binding de PostgreSQL ou exponha o ENGINE sem Cloudflare Access.
+// Nunca adicione uma binding de PostgreSQL ou exponha ENGINE sem autenticar sessao e grants.
 const TEST_HOST = 'nucel-vpc-teste.nuvixgestao.workers.dev';
 const PANEL = 'http://127.0.0.1:3001';
 const ENGINE = 'http://127.0.0.1:8000';
@@ -43,7 +43,7 @@ export default {
       incoming.pathname.startsWith('/engine/') ||
       incoming.pathname.startsWith('/ws-scrcpy') ||
       engineApi || ws;
-    // O Zero Trust valida o email. O NuCel valida a sessao e os celulares liberados.
+    // O NuCel valida a sessao e os celulares liberados antes de cada acesso ao ENGINE.
     // Sem uma sessao local valida, NUNCA envie pedidos ao ENGINE.
     if (enginePath) {
       const cookie = request.headers.get('cookie');
@@ -94,6 +94,41 @@ export default {
     // Ja validamos a origem publica exata acima; dentro da VPC o Host eh
     // 127.0.0.1:8000, portanto a Origem deve ser a do destino privado.
     if (enginePath && origin) headers.set('origin', ENGINE);
+
+    // O ws-scrcpy usa um cookie de instancia diferente a cada reinicio do
+    // ENGINE. O navegador remoto pode manter o token antigo (ou nao enviar
+    // o cookie Partitioned). Para as rotas sensiveis, o Worker obtem o
+    // token atual diretamente pela VPC, APOS validar login NuCel e grants.
+    // Nunca desabilite o controle de token dentro do ENGINE.
+    const needsEngineToken = enginePath && (
+      ws || incoming.pathname === '/api/capabilities' ||
+      incoming.pathname === '/api/settings' ||
+      incoming.pathname === '/api/settings/device'
+    );
+    if (needsEngineToken) {
+      try {
+        const bootstrap = await env.ENGINE_SERVICE.fetch(new Request(
+          ENGINE + '/nucel-direct.html',
+          { method: 'GET', headers: { accept: 'text/html' }, redirect: 'manual' }
+        ));
+        const setCookie = bootstrap.headers.get('set-cookie') || '';
+        // Cookie HttpOnly gerado pelo proprio ENGINE, nunca pelo navegador.
+        const match = /(?:^|,\\s*)ws_scrcpy_token=([a-f0-9]{64})(?:;|$)/i.exec(setCookie);
+        try { await bootstrap.body?.cancel(); } catch {}
+        if (!bootstrap.ok || !match) {
+          return new Response('ENGINE sem token de sessao. Verifique o motor local.', { status: 502 });
+        }
+        const browserCookies = (request.headers.get('cookie') || '')
+          .split(';')
+          .map(part => part.trim())
+          .filter(part => part && !part.startsWith('ws_scrcpy_token='));
+        browserCookies.push('ws_scrcpy_token=' + match[1]);
+        headers.set('cookie', browserCookies.join('; '));
+      } catch (error) {
+        console.error('NuCel VPC ENGINE token fetch failed', String(error));
+        return new Response('Falha ao validar o ENGINE local.', { status: 502 });
+      }
+    }
 
     // Preserve a origem HTTPS real do navegador. O Next local utiliza
     // uma allowlist estrita com os hostnames oficiais do NuCel.
